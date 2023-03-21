@@ -4,11 +4,24 @@
   
   
   <entry>
-    <title></title>
-    <link href="/2023/02/19/demo/202301192138/"/>
-    <url>/2023/02/19/demo/202301192138/</url>
+    <title>Hello World</title>
+    <link href="/2023/03/20/hello-world/"/>
+    <url>/2023/03/20/hello-world/</url>
     
-    <content type="html"><![CDATA[<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">git <span class="hljs-built_in">clone</span> aj;dslkfja<br></code></pre></td></tr></table></figure><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">UserService</span> &#123;<br><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">test</span><span class="hljs-params">()</span> &#123;<br><span class="hljs-number">123456</span><br>&#125;<br>&#125;<br></code></pre></td></tr></table></figure><p><img src="https://githubxiaosiyuan.github.io/images/Pasted%20image%2020230219204336.png"></p>]]></content>
+    <content type="html"><![CDATA[<p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p><h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo new <span class="hljs-string">&quot;My New Post&quot;</span><br></code></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p><h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo server<br></code></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p><h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo generate<br></code></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p><h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo deploy<br></code></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>]]></content>
+    
+    
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title></title>
+    <link href="/2023/03/04/jeecgboot%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA%E5%87%86%E5%A4%87/"/>
+    <url>/2023/03/04/jeecgboot%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA%E5%87%86%E5%A4%87/</url>
+    
+    <content type="html"><![CDATA[<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><h2 id="访问地址"><a href="#访问地址" class="headerlink" title="访问地址"></a>访问地址</h2><table><thead><tr><th>软件服务</th><th>测试地址</th><th>账号密码</th><th>是否必须</th></tr></thead><tbody><tr><td>rabitmq （消息中间件）</td><td><a href="http://localhost:15672/">http://localhost:15672</a></td><td>guest&#x2F;guest</td><td>否</td></tr><tr><td>nacos（服务注册发现和统一配置中心）</td><td><a href="http://localhost:8848/nacos">http://localhost:8848/nacos</a></td><td>nacos&#x2F;nacos</td><td>是</td></tr><tr><td>xxl-job-admin（分布式定时任务）</td><td><a href="http://localhost:9080/xxl-job-admin">http://localhost:9080/xxl-job-admin</a></td><td>admin&#x2F;123456</td><td>否</td></tr><tr><td>redis （缓存）</td><td>127.0.0.1:6379</td><td>密码空</td><td>是</td></tr></tbody></table>]]></content>
     
     
     
