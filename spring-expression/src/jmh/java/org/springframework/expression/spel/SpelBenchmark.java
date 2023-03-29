@@ -43,7 +43,8 @@ public class SpelBenchmark {
 
 		public ExpressionParser parser = new SpelExpressionParser();
 
-		public EvaluationContext eContext = TestScenarioCreator.getTestEvaluationContext();
+		// 编译的时候获取不到引用，但是我又不想引用test模块
+		public EvaluationContext eContext = null; // TestScenarioCreator.getTestEvaluationContext()
 
 	}
 

@@ -16,6 +16,7 @@ configurations {
 }
 
 task javapoetRepackJar(type: ShadowJar) {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 	archiveBaseName = 'spring-javapoet-repack'
 	archiveVersion = javapoetVersion
 	configurations = [project.configurations.javapoet]
@@ -29,6 +30,7 @@ task javapoetSource(type: ShadowSource) {
 }
 
 task javapoetSourceJar(type: Jar) {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 	archiveBaseName = 'spring-javapoet-repack'
 	archiveVersion = javapoetVersion
 	archiveClassifier = 'sources'
@@ -36,6 +38,7 @@ task javapoetSourceJar(type: Jar) {
 }
 
 task objenesisRepackJar(type: ShadowJar) {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 	archiveBaseName = 'spring-objenesis-repack'
 	archiveVersion = objenesisVersion
 	configurations = [project.configurations.objenesis]
@@ -49,6 +52,7 @@ task objenesisSource(type: ShadowSource) {
 }
 
 task objenesisSourceJar(type: Jar) {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 	archiveBaseName = 'spring-objenesis-repack'
 	archiveVersion = objenesisVersion
 	archiveClassifier = 'sources'
@@ -97,6 +101,7 @@ dependencies {
 }
 
 jar {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 	manifest.attributes["Dependencies"] = "jdk.unsupported"  // for WildFly (-> Objenesis 3.2)
 
 	dependsOn javapoetRepackJar
@@ -123,6 +128,7 @@ test {
 }
 
 sourcesJar {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 	dependsOn javapoetSourceJar
 	dependsOn objenesisSourceJar
 	from javapoetSource

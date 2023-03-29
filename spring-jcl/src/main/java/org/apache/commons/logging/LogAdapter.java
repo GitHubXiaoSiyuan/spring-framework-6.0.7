@@ -119,8 +119,18 @@ final class LogAdapter {
 
 		public static Log createLocationAwareLog(String name) {
 			Logger logger = LoggerFactory.getLogger(name);
-			return (logger instanceof LocationAwareLogger locationAwareLogger ?
+			// 这里编译的时候语法不支持，所以重写一下
+			/*
+			原来代码，简化了，但是语法报错
+			return (logger instanceof LocationAwareLogger locationAwareLogger?
 					new Slf4jLocationAwareLog(locationAwareLogger) : new Slf4jLog<>(logger));
+			 */
+			if (logger instanceof LocationAwareLogger) {
+				LocationAwareLogger locationAwareLogger = (LocationAwareLogger) logger;
+				return new Slf4jLocationAwareLog(locationAwareLogger);
+			} else {
+				return new Slf4jLog<>(logger);
+			}
 		}
 
 		public static Log createLog(String name) {
@@ -247,7 +257,17 @@ final class LogAdapter {
 		}
 
 		private void log(Level level, Object message, Throwable exception) {
+			// 这里编译的时候语法不支持，所以重写一下
+			/*
+			原来代码，简化了，但是语法报错
 			if (message instanceof String text) {
+
+			旧语法
+			if (message instanceof String) {
+				String text = (String) message;
+			 */
+			if (message instanceof String) {
+				String text = (String) message;
 				// Explicitly pass a String argument, avoiding Log4j's argument expansion
 				// for message objects in case of "{}" sequences (SPR-16226)
 				if (exception != null) {
@@ -593,7 +613,8 @@ final class LogAdapter {
 		private void log(java.util.logging.Level level, Object message, Throwable exception) {
 			if (this.logger.isLoggable(level)) {
 				LogRecord rec;
-				if (message instanceof LogRecord logRecord) {
+				if (message instanceof LogRecord) {
+					LogRecord logRecord = (LogRecord) message;
 					rec = logRecord;
 				}
 				else {

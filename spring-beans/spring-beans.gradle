@@ -1,6 +1,33 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 description = "Spring Beans"
 
 apply plugin: "kotlin"
+
+
+task javapoetRepackJar(type: ShadowJar) {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+task javapoetSourceJar(type: Jar) {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+task objenesisRepackJar(type: ShadowJar) {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+task objenesisSourceJar(type: Jar) {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+jar {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+sourcesJar {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
 
 dependencies {
 	api(project(":spring-core"))

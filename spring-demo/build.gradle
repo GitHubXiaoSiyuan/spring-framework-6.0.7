@@ -1,0 +1,48 @@
+plugins {
+    id 'java'
+}
+
+group 'org.springframework'
+version '6.0.8-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+
+
+dependencies {
+    implementation(project(":spring-context"))
+    // 引用 jar 包
+    optional("org.aspectj:aspectjweaver")
+//    implementation 'org.projectlombok:lombok:1.18.20'
+//    compileOnly 'org.projectlombok:lombok:1.18.20'
+//    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+
+    compileOnly 'org.projectlombok:lombok:1.18.20'
+    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// gradle 执行Java类
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs.clear();
+    options.compilerArgs << "-Xlint:none"
+
+//    println options.compilerArgs
+}
+
+
+
+task runMyJavaClass(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'cn.xiaosy.xspring.service.TestXSpring'
+}
+

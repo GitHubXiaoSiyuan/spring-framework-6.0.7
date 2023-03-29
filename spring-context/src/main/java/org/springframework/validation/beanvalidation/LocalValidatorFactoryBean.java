@@ -465,7 +465,11 @@ public class LocalValidatorFactoryBean extends SpringValidatorAdapter
 	private static class HibernateValidatorDelegate {
 
 		public static MessageInterpolator buildMessageInterpolator(MessageSource messageSource) {
-			return new ResourceBundleMessageInterpolator(new MessageSourceResourceBundleLocator(messageSource));
+			// 反正也没地方调用先注释掉
+			// ajc: The type jakarta.el.ExpressionFactory cannot be resolved.
+			// It is indirectly referenced from required type org.hibernate.validator.messageinterpolation.ResourceBundleMessageInterpolator
+//			return new ResourceBundleMessageInterpolator(new MessageSourceResourceBundleLocator(messageSource));
+			return null;
 		}
 	}
 
