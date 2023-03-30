@@ -79,6 +79,11 @@ public enum Propagation {
 	 */
 	NOT_SUPPORTED(TransactionDefinition.PROPAGATION_NOT_SUPPORTED),
 
+
+	// NEVER
+	// 以非事务方式执行，如果存在事务则抛出异常。
+	// 类似于同名的EJB事务属性。
+
 	/**
 	 * Execute non-transactionally, throw an exception if a transaction exists.
 	 * Analogous to EJB transaction attribute of the same name.

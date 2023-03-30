@@ -119,14 +119,7 @@ final class LogAdapter {
 
 		public static Log createLocationAwareLog(String name) {
 			Logger logger = LoggerFactory.getLogger(name);
-			// 这里编译的时候语法不支持，所以重写一下
-			/*
-			原来代码，简化了，但是语法报错
-			return (logger instanceof LocationAwareLogger locationAwareLogger?
-					new Slf4jLocationAwareLog(locationAwareLogger) : new Slf4jLog<>(logger));
-			 */
-			if (logger instanceof LocationAwareLogger) {
-				LocationAwareLogger locationAwareLogger = (LocationAwareLogger) logger;
+			if (logger instanceof LocationAwareLogger locationAwareLogger) {
 				return new Slf4jLocationAwareLog(locationAwareLogger);
 			} else {
 				return new Slf4jLog<>(logger);

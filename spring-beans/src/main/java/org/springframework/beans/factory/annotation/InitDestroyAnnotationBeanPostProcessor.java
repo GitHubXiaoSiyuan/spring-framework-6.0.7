@@ -127,6 +127,12 @@ public class InitDestroyAnnotationBeanPostProcessor implements DestructionAwareB
 	 * is the {@link jakarta.annotation.PostConstruct} annotation.
 	 */
 	public void setInitAnnotationType(Class<? extends Annotation> initAnnotationType) {
+		/**
+		 * 调用位置
+		 * @see org.springframework.context.annotation.CommonAnnotationBeanPostProcessor#CommonAnnotationBeanPostProcessor()
+		 *
+		 * setInitAnnotationType(PostConstruct.class);
+		 */
 		this.initAnnotationType = initAnnotationType;
 	}
 
@@ -138,6 +144,12 @@ public class InitDestroyAnnotationBeanPostProcessor implements DestructionAwareB
 	 * is the {@link jakarta.annotation.PreDestroy} annotation.
 	 */
 	public void setDestroyAnnotationType(Class<? extends Annotation> destroyAnnotationType) {
+		/**
+		 * 调用位置
+		 * @see org.springframework.context.annotation.CommonAnnotationBeanPostProcessor#CommonAnnotationBeanPostProcessor()
+		 *
+		 * setDestroyAnnotationType(PreDestroy.class);
+		 */
 		this.destroyAnnotationType = destroyAnnotationType;
 	}
 
@@ -188,8 +200,10 @@ public class InitDestroyAnnotationBeanPostProcessor implements DestructionAwareB
 
 	@Override
 	public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+		// 构建 LifecycleMetadata (注：LifecycleMetadata 的 initMethods有 PostConstruct 注解修饰的方法)
 		LifecycleMetadata metadata = findLifecycleMetadata(bean.getClass());
 		try {
+			// 调用 PostConstruct 注解修饰的方法
 			metadata.invokeInitMethods(bean, beanName);
 		}
 		catch (InvocationTargetException ex) {
@@ -234,6 +248,7 @@ public class InitDestroyAnnotationBeanPostProcessor implements DestructionAwareB
 
 	private LifecycleMetadata findLifecycleMetadata(Class<?> clazz) {
 		if (this.lifecycleMetadataCache == null) {
+			// 发生在序列化之后，销毁之前
 			// Happens after deserialization, during destruction...
 			return buildLifecycleMetadata(clazz);
 		}
@@ -243,6 +258,7 @@ public class InitDestroyAnnotationBeanPostProcessor implements DestructionAwareB
 			synchronized (this.lifecycleMetadataCache) {
 				metadata = this.lifecycleMetadataCache.get(clazz);
 				if (metadata == null) {
+					// 初始化之前
 					metadata = buildLifecycleMetadata(clazz);
 					this.lifecycleMetadataCache.put(clazz, metadata);
 				}
@@ -252,6 +268,15 @@ public class InitDestroyAnnotationBeanPostProcessor implements DestructionAwareB
 		return metadata;
 	}
 
+	/**
+	 *
+	 * 构建 LifecycleMetadata 过程：
+	 *
+	 * 把有 PostConstruct 注解修饰的方法放到  initMethods
+	 * 把有 destroyMethods 注解修饰的方法放到  destroyMethods
+	 * @param clazz
+	 * @return
+	 */
 	private LifecycleMetadata buildLifecycleMetadata(final Class<?> clazz) {
 		if (!AnnotationUtils.isCandidateClass(clazz, Arrays.asList(this.initAnnotationType, this.destroyAnnotationType))) {
 			return this.emptyLifecycleMetadata;
@@ -265,7 +290,11 @@ public class InitDestroyAnnotationBeanPostProcessor implements DestructionAwareB
 			final List<LifecycleElement> currInitMethods = new ArrayList<>();
 			final List<LifecycleElement> currDestroyMethods = new ArrayList<>();
 
+			// 遍历所有方法看是否有 PostConstruct 或 PreDestroy 注解修饰的方法
 			ReflectionUtils.doWithLocalMethods(targetClass, method -> {
+				// 看当前方法是否有 PostConstruct 注解，有的话添加到 currInitMethods  中
+				// （注：this.initAnnotationType 存储的是 jakarta.annotation.PostConstruct）
+				/** @see #setInitAnnotationType(Class)  */
 				if (this.initAnnotationType != null && method.isAnnotationPresent(this.initAnnotationType)) {
 					LifecycleElement element = new LifecycleElement(method);
 					currInitMethods.add(element);
@@ -273,6 +302,8 @@ public class InitDestroyAnnotationBeanPostProcessor implements DestructionAwareB
 						logger.trace("Found init method on class [" + clazz.getName() + "]: " + method);
 					}
 				}
+				// 看当前方法是否有 PreDestroy 注解，有的话添加到 currDestroyMethods  中 (注：this.destroyAnnotationType 存储的是 jakarta.annotation.PreDestroy)
+				/** @see #setDestroyAnnotationType(Class)  */
 				if (this.destroyAnnotationType != null && method.isAnnotationPresent(this.destroyAnnotationType)) {
 					currDestroyMethods.add(new LifecycleElement(method));
 					if (logger.isTraceEnabled()) {
@@ -281,7 +312,9 @@ public class InitDestroyAnnotationBeanPostProcessor implements DestructionAwareB
 				}
 			});
 
+			// 把 currInitMethods 添加到 initMethods 中
 			initMethods.addAll(0, currInitMethods);
+			// 把 currDestroyMethods 添加到 destroyMethods 中
 			destroyMethods.addAll(currDestroyMethods);
 			targetClass = targetClass.getSuperclass();
 		}

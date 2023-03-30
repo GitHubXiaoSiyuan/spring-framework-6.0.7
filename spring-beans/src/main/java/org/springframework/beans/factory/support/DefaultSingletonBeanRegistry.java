@@ -74,6 +74,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	private static final int SUPPRESSED_EXCEPTIONS_LIMIT = 100;
 
 
+	// 单例池
 	/** Cache of singleton objects: bean name to bean instance. */
 	private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
 
@@ -153,9 +154,12 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 */
 	protected void addSingletonFactory(String beanName, ObjectFactory<?> singletonFactory) {
 		Assert.notNull(singletonFactory, "Singleton factory must not be null");
+		// 加锁是因为 二级缓存 earlySingletonObjects 和 三级缓存 singletonFactories 不能同时存在同一个 bean，保证原子性
 		synchronized (this.singletonObjects) {
 			if (!this.singletonObjects.containsKey(beanName)) {
+				// bean 添加到 三级缓存 singletonFactories
 				this.singletonFactories.put(beanName, singletonFactory);
+				// bean 从 二级缓存 earlySingletonObjects 中移除
 				this.earlySingletonObjects.remove(beanName);
 				this.registeredSingletons.add(beanName);
 			}
@@ -179,20 +183,32 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	@Nullable
 	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
 		// Quick check for existing instance without full singleton lock
+		// 从 一级缓存 singletonObjects 里面获取 bean
 		Object singletonObject = this.singletonObjects.get(beanName);
+		// 如果从 一级缓存 singletonObjects 获取不到，且这个 bean 正在创建中，也就是出现了循环依赖
 		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
+			// 从 二级缓存 earlySingletonObjects 里面获取 bean
 			singletonObject = this.earlySingletonObjects.get(beanName);
 			if (singletonObject == null && allowEarlyReference) {
+				// 加锁是因为 二级缓存 earlySingletonObjects 和 三级缓存 singletonFactories 不能同时存在同一个 bean，保证原子性
+				// 加上锁 在从 一级缓存 singletonObject 和 二级缓存 earlySingletonObjects 里面找
 				synchronized (this.singletonObjects) {
 					// Consistent creation of early reference within full singleton lock
 					singletonObject = this.singletonObjects.get(beanName);
 					if (singletonObject == null) {
 						singletonObject = this.earlySingletonObjects.get(beanName);
 						if (singletonObject == null) {
+							// 从 三级缓存 singletonFactories 里面找
+							// 获取到 lambda 表达式
 							ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
 							if (singletonFactory != null) {
+								// 执行 lambda 表达式
 								singletonObject = singletonFactory.getObject();
+								// 把结果放到 二级缓存 earlySingletonObjects 里面
 								this.earlySingletonObjects.put(beanName, singletonObject);
+								// 把 bean 从 三级缓存 singletonFactories 里面移除
+								// 为什么要移除？ 保证 lambda 表达式只执行一次。因为 lambda 表达式已经执行了，生成了一个对象，不希望它再次执行造成生成多个对象
+								// 否则，有可能生成多个代理对象
 								this.singletonFactories.remove(beanName);
 							}
 						}

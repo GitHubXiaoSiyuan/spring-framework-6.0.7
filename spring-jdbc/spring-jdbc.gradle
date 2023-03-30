@@ -2,6 +2,26 @@ description = "Spring JDBC"
 
 apply plugin: "kotlin"
 
+
+
+task javapoetSourceJar(type: Jar) {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+
+
+task objenesisSourceJar(type: Jar) {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+jar {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+sourcesJar {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 dependencies {
 	api(project(":spring-beans"))
 	api(project(":spring-core"))

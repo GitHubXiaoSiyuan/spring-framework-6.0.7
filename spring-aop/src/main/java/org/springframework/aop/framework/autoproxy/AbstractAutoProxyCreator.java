@@ -262,10 +262,20 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		return null;
 	}
 
+	/**
+	 * 因为循环依赖，提前进行 AOP
+	 * @param bean the raw bean instance
+	 * @param beanName the name of the bean
+	 * @return
+	 */
 	@Override
 	public Object getEarlyBeanReference(Object bean, String beanName) {
 		Object cacheKey = getCacheKey(bean.getClass(), beanName);
+		// 因为循环依赖，提前进行 AOP
+		// 把 beanName 当做 cacheKey 存入 缓存 earlyProxyReferences 中
+		// 后面会根据这缓存来判断是否需要进行 AOP，用来保证不会对一个 bean 重复进行 AOP
 		this.earlyProxyReferences.put(cacheKey, bean);
+		// 执行 lambda 表达式 获取代理对象
 		return wrapIfNecessary(bean, beanName, cacheKey);
 	}
 
@@ -313,8 +323,12 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	@Override
 	public Object postProcessAfterInitialization(@Nullable Object bean, String beanName) {
 		if (bean != null) {
+			// cacheKey 就是 bean的名字 beanName
+			// 循环依赖的时候，提前进行 AOP ，会把 cacheKey 存到缓存 earlyProxyReferences 里面
+			// 此时，缓存里面有 cacheKey 的值，这里就不进行 AOP 了
 			Object cacheKey = getCacheKey(bean.getClass(), beanName);
 			if (this.earlyProxyReferences.remove(cacheKey) != bean) {
+				// 没有循环依赖，按照正常生命周期进行 AOP
 				return wrapIfNecessary(bean, beanName, cacheKey);
 			}
 		}
@@ -354,17 +368,22 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		if (StringUtils.hasLength(beanName) && this.targetSourcedBeans.contains(beanName)) {
 			return bean;
 		}
+		// advisedBeans 表示已经判断过了的 bean， false 表示当前 bean 不需要进行 AOP
 		if (Boolean.FALSE.equals(this.advisedBeans.get(cacheKey))) {
 			return bean;
 		}
+		// 当前正在创建的 Bean 不用进行 AOP，比如切面 Bean
 		if (isInfrastructureClass(bean.getClass()) || shouldSkip(bean.getClass(), beanName)) {
 			this.advisedBeans.put(cacheKey, Boolean.FALSE);
 			return bean;
 		}
 
 		// Create proxy if we have advice.
+		// 判断当前 Bean 是否存在匹配的 advice，如果存在则要生成一个代理对象
+		// 此处根据类以及类中的方法去匹配到 Interceptor (也就是 Advice)，然后生成代理对象，代理对象在执行的时候，还会根据当前执行的方法去匹配
 		Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
 		if (specificInterceptors != DO_NOT_PROXY) {
+			// advisedBeans 用来记录某个 Bean 是否经过了 AOP
 			this.advisedBeans.put(cacheKey, Boolean.TRUE);
 			Object proxy = createProxy(
 					bean.getClass(), beanName, specificInterceptors, new SingletonTargetSource(bean));

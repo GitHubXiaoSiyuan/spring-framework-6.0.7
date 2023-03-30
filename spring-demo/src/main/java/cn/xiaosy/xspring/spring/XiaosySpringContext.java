@@ -47,7 +47,7 @@ public class XiaosySpringContext {
 
                     if (name.endsWith(".class")) {
 
-                        // todo 待确认
+                        // todo 待优化
                         // 优化 斜线和反斜线
                         // 这里是根据当前的运行环境截取的全限定类名，其他环境可能不一样
                         // 9 是 /classes/ 的长度加1
@@ -159,8 +159,7 @@ public class XiaosySpringContext {
             }
 
             // aware回调 BeanNameAware
-            if (instance instanceof BeanNameAware) {
-                BeanNameAware beanNameAware = (BeanNameAware) instance;
+            if (instance instanceof BeanNameAware beanNameAware) {
                 beanNameAware.setBeanName(beanName);
             }
 
@@ -170,8 +169,7 @@ public class XiaosySpringContext {
             }
 
             // 初始化 InitializingBean
-            if (instance instanceof InitializingBean) {
-                InitializingBean initializingBean = (InitializingBean) instance;
+            if (instance instanceof InitializingBean initializingBean) {
                 initializingBean.afterPropertiesSet();
             }
 
