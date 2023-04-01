@@ -55,7 +55,7 @@ import org.springframework.core.type.filter.TypeFilter;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Documented
-@Repeatable(ComponentScans.class)
+@Repeatable(ComponentScans.class)	// 可重复注解，一个类上可以有多个 @ComponentScan 注解
 public @interface ComponentScan {
 
 	/**

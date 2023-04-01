@@ -565,6 +565,11 @@ public abstract class StringUtils {
 	 * @see java.beans.Introspector#decapitalize(String)
 	 */
 	public static String uncapitalizeAsProperty(String str) {
+		// !hasLength(str) 为空 null 或 ""
+		// (str.length() > 1 && Character.isUpperCase(str.charAt(0)) && Character.isUpperCase(str.charAt(1)))   长度大于1，且前两个字母大写
+		// 即：有以下两种情况的返回类名
+		// 1. 为空 null 或 ""
+		// 2. 长度大于1，且前两个字母大写 （比如： 类名 AService 则返回 AService ，而不是 aService）
 		if (!hasLength(str) || (str.length() > 1 && Character.isUpperCase(str.charAt(0)) &&
 				Character.isUpperCase(str.charAt(1)))) {
 			return str;

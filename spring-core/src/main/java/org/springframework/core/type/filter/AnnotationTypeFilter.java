@@ -115,6 +115,7 @@ public class AnnotationTypeFilter extends AbstractTypeHierarchyTraversingFilter 
 
 	@Nullable
 	protected Boolean hasAnnotation(String typeName) {
+		// 有传入的注解名称（比如：@Component  注解 、ManagedBean 注解、 Named 注解），就符合这个过滤器
 		if (Object.class.getName().equals(typeName)) {
 			return false;
 		}

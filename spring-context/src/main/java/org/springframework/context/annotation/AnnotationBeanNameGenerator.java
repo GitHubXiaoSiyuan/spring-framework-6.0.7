@@ -16,6 +16,7 @@
 
 package org.springframework.context.annotation;
 
+import java.beans.Introspector;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -68,6 +69,7 @@ public class AnnotationBeanNameGenerator implements BeanNameGenerator {
 	 * as used for component scanning purposes.
 	 * @since 5.2
 	 */
+	// 默认 componentScanBeanNameGenerator
 	public static final AnnotationBeanNameGenerator INSTANCE = new AnnotationBeanNameGenerator();
 
 	private static final String COMPONENT_ANNOTATION_CLASSNAME = "org.springframework.stereotype.Component";
@@ -78,6 +80,7 @@ public class AnnotationBeanNameGenerator implements BeanNameGenerator {
 	@Override
 	public String generateBeanName(BeanDefinition definition, BeanDefinitionRegistry registry) {
 		if (definition instanceof AnnotatedBeanDefinition annotatedBeanDefinition) {
+			// 获取注解所指定的 beanName
 			String beanName = determineBeanNameFromAnnotation(annotatedBeanDefinition);
 			if (StringUtils.hasText(beanName)) {
 				// Explicit bean name found.
@@ -85,6 +88,7 @@ public class AnnotationBeanNameGenerator implements BeanNameGenerator {
 			}
 		}
 		// Fallback: generate a unique default bean name.
+		// 获取不到 @Component 注解的 value 属性的值，自己去构建
 		return buildDefaultBeanName(definition, registry);
 	}
 
@@ -106,6 +110,7 @@ public class AnnotationBeanNameGenerator implements BeanNameGenerator {
 					return (result.isEmpty() ? Collections.emptySet() : result);
 				});
 				if (isStereotypeWithNameValue(type, metaTypes, attributes)) {
+					// 获取 @Component 注解的 value 属性的值
 					Object value = attributes.get("value");
 					if (value instanceof String strVal && !strVal.isEmpty()) {
 						if (beanName != null && !strVal.equals(beanName)) {
@@ -163,7 +168,14 @@ public class AnnotationBeanNameGenerator implements BeanNameGenerator {
 	protected String buildDefaultBeanName(BeanDefinition definition) {
 		String beanClassName = definition.getBeanClassName();
 		Assert.state(beanClassName != null, "No bean class name set");
+		// shortClassName 类名
 		String shortClassName = ClassUtils.getShortName(beanClassName);
+		// 首字母小写 (除前两个字母都大写之外)
+		// 以前的版本用的是这种方法
+		// Introspector.decapitalize(shortClassName);
+		/**
+		 * 条件断点 "AService".toLowerCase().equals(shortClassName.toLowerCase())
+		 */
 		return StringUtils.uncapitalizeAsProperty(shortClassName);
 	}
 

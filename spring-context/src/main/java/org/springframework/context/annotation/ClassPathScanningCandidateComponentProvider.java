@@ -25,6 +25,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import jakarta.annotation.ManagedBean;
+import jakarta.inject.Named;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -88,6 +90,11 @@ import org.springframework.util.ClassUtils;
  */
 public class ClassPathScanningCandidateComponentProvider implements EnvironmentCapable, ResourceLoaderAware {
 
+	/**
+	 * 比如：@ComponentScan(value = "cn.xiaosy.springdemo.scanner")
+	 * DEFAULT_RESOURCE_PATTERN 表示 cn.xiaosy.springdemo.scanner 路径下所有层级的类
+	 * 注：把 @ComponentScan 注解修饰的类放到最外层就行了，没有遇到什么场景需要修改这个属性
+	 */
 	static final String DEFAULT_RESOURCE_PATTERN = "**/*.class";
 
 
@@ -205,9 +212,16 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	 */
 	@SuppressWarnings("unchecked")
 	protected void registerDefaultFilters() {
+		// 添加三个过滤器 @Component 对应的 AnnotationTypeFilter 、 ManagedBean 、Named
+		// 注册 @Component 对应的 AnnotationTypeFilter
+		// 有 @Component 注解，就符合这个过滤器
 		this.includeFilters.add(new AnnotationTypeFilter(Component.class));
 		ClassLoader cl = ClassPathScanningCandidateComponentProvider.class.getClassLoader();
 		try {
+			// 有 @ManagedBean 注解，就符合这个过滤器
+			// 先有包有这个类才会添加依赖
+			// api("jakarta.annotation:jakarta.annotation-api:2.0.0")	// 引用 @ManagedBean 注解相关 jar 包
+			/** @see ManagedBean*/
 			this.includeFilters.add(new AnnotationTypeFilter(
 					((Class<? extends Annotation>) ClassUtils.forName("jakarta.annotation.ManagedBean", cl)), false));
 			logger.trace("JSR-250 'jakarta.annotation.ManagedBean' found and supported for component scanning");
@@ -216,6 +230,10 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 			// JSR-250 1.1 API (as included in Jakarta EE) not available - simply skip.
 		}
 		try {
+			// 有 @Named 注解，就符合这个过滤器
+			// 先有包有这个类才会添加依赖
+			// api("jakarta.inject:jakarta.inject-api:2.0.0")	// 引用 @Named 注解相关 jar 包
+			/** @see Named */
 			this.includeFilters.add(new AnnotationTypeFilter(
 					((Class<? extends Annotation>) ClassUtils.forName("jakarta.inject.Named", cl)), false));
 			logger.trace("JSR-330 'jakarta.inject.Named' annotation found and supported for component scanning");
@@ -310,10 +328,16 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	 * @return a corresponding Set of autodetected bean definitions
 	 */
 	public Set<BeanDefinition> findCandidateComponents(String basePackage) {
+		// 优化机制
+		// componentsIndex 优化机制 提高 spring 的扫描速度
+		// 当类很多，但是只有几个类是需要成为 bean 的场景下，用到这个优化机制
+		// resources/META-INF/spring.components 文件中有内容进入这个判断
 		if (this.componentsIndex != null && indexSupportsIncludeFilters()) {
 			return addCandidateComponentsFromIndex(this.componentsIndex, basePackage);
 		}
+		// 常用机制
 		else {
+			// 扫描
 			return scanCandidateComponents(basePackage);
 		}
 	}
@@ -376,6 +400,7 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 		try {
 			Set<String> types = new HashSet<>();
 			for (TypeFilter filter : this.includeFilters) {
+				// @Component 注解
 				String stereotype = extractStereotype(filter);
 				if (stereotype == null) {
 					throw new IllegalArgumentException("Failed to extract stereotype from " + filter);
@@ -417,8 +442,10 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	private Set<BeanDefinition> scanCandidateComponents(String basePackage) {
 		Set<BeanDefinition> candidates = new LinkedHashSet<>();
 		try {
+			// 获取 basePackage 下所有的文件资源
 			String packageSearchPath = ResourcePatternResolver.CLASSPATH_ALL_URL_PREFIX +
 					resolveBasePackage(basePackage) + '/' + this.resourcePattern;
+			// getResourcePatternResolver() 获取 资源解析器 ResourcePatternResolver
 			Resource[] resources = getResourcePatternResolver().getResources(packageSearchPath);
 			boolean traceEnabled = logger.isTraceEnabled();
 			boolean debugEnabled = logger.isDebugEnabled();
@@ -431,11 +458,23 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 				if (traceEnabled) {
 					logger.trace("Scanning " + resource);
 				}
+				// 旧版本会在这里判断是否可读
+				// resource.isReadable();  // 指示是否可以读取此资源的非空内容
 				try {
+					// metadataReader 类的元信息
+					/**
+					 * 通过反射的方式获取类的元信息，会需要把所有的类都加载到 jvm 中去
+					 * 所以用 ASM 技术
+					 * 不用去加载类，用 ASM 解析类
+					 * @see cn.xiaosy.springdemo.scanner.asm.ASMTest#main(String[])  // 例子
+					 */
 					MetadataReader metadataReader = getMetadataReaderFactory().getMetadataReader(resource);
-					if (isCandidateComponent(metadataReader)) {
+					// excludeFilters includeFilters 判断
+					// 利用注解判断是否是候选的 Component
+					if (isCandidateComponent(metadataReader)) {	// @Component -> includeFilters 判断
 						ScannedGenericBeanDefinition sbd = new ScannedGenericBeanDefinition(metadataReader);
 						sbd.setSource(resource);
+						// 利用类的元信息，判断是否是候选的 Component
 						if (isCandidateComponent(sbd)) {
 							if (debugEnabled) {
 								logger.debug("Identified candidate component class: " + resource);
@@ -493,11 +532,15 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	protected boolean isCandidateComponent(MetadataReader metadataReader) throws IOException {
 		for (TypeFilter tf : this.excludeFilters) {
 			if (tf.match(metadataReader, getMetadataReaderFactory())) {
+				// 和某个 excludeFilter 类匹配，那就返回 false ，排除掉这个类
 				return false;
 			}
 		}
+
+		// 符合 includeFilters 的会进行条件匹配，通过了才是 Bean，也就是先看有没有 @Component，再看是否符合 @Conditional
 		for (TypeFilter tf : this.includeFilters) {
 			if (tf.match(metadataReader, getMetadataReaderFactory())) {
+				// 符合 @Conditional 才会成为 bean
 				return isConditionMatch(metadataReader);
 			}
 		}
@@ -528,6 +571,94 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	 */
 	protected boolean isCandidateComponent(AnnotatedBeanDefinition beanDefinition) {
 		AnnotationMetadata metadata = beanDefinition.getMetadata();
+		// metadata.isIndependent()	是独立类
+		// metadata.isConcrete()	不是接口且不是抽象类
+		// metadata.isAbstract() && metadata.hasAnnotatedMethods(Lookup.class.getName())	是抽象类，且任意一个方法中有 @Lookup 注解
+
+		/**
+		 *
+		 * 1. 内部类
+		 *
+		 * @Component
+		 * public class UserService {
+		 *
+		 *    @Component
+		 *    public class  SVipService {
+		 *
+		 *    }
+		 * }
+		 *
+		 * SVipService 就不是一个独立的类，metadata.isIndependent() 为false
+		 * 不能成为 bean，在这里排除掉
+		 *
+		 *
+		 * SVipService 不能独立实例化，需要依靠外部类对象
+		 *
+		 * //		UserService.SVipService sVipService = new UserService.SVipService();
+		 * 		UserService.SVipService sVipService = new UserService().new SVipService();
+		 *
+		 *
+		 *
+		 * 2. 静态内部类	是独立的，可以用 @Component
+		 *
+		 * @Component
+		 * public class UserService {
+		 *    @Component
+		 *    public static class  SVipService {
+		 *    }
+		 * }
+		 *
+		 * SVipService 是一个独立的类，metadata.isIndependent() 为 true
+		 *
+		 * SVipService 可以独立实例化，不需要依靠外部类对象，只需要外部类
+		 *
+		 * UserService.SVipService sVipService = new UserService.SVipService();
+		 *
+		 * // 获取方式
+		 * applicationContext.getBean("userService.SVipService")
+		 *
+		 */
+		/**
+		 * @Lookup 注解
+		 *
+		 * @Component
+		 * public abstract class AbsUserService {
+		 *
+		 * 	// No qualifying bean of type 'void' available
+		 *        @Lookup
+		 *    public void test() {
+		 * 		System.out.println("test");
+		 *    }
+		 *
+		 * 	// No qualifying bean of type 'java.lang.Object' available
+		 *    @Lookup
+		 *    public Object testA() {
+		 * 		System.out.println("testA");
+		 * 		return null;
+		 *    }
+		 *
+		 * 	// 不会报错
+		 *    @Lookup
+		 *    public OrderService testB() {
+		 * 		System.out.println("testB");
+		 * 		return null;
+		 *    }
+		 *
+		 * 	// 不会报错
+		 *    @Lookup("orderService")
+		 *    public void testC() {
+		 * 		System.out.println("testC");
+		 *    }
+		 *
+		 *
+		 * }
+		 *
+		 * 可以获取到bean，一个代理对象, 不会执行 方法内部的逻辑，只会返回一个 bean
+		 *
+		 * 不能调用 test() 方法
+		 *
+		 *
+		 */
 		return (metadata.isIndependent() && (metadata.isConcrete() ||
 				(metadata.isAbstract() && metadata.hasAnnotatedMethods(Lookup.class.getName()))));
 	}

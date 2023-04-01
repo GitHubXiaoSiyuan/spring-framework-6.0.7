@@ -65,15 +65,35 @@ class ComponentScanAnnotationParser {
 	}
 
 
+	/**
+	 *
+	 * @param componentScan 表示 @ComponentScan 注解的属性值
+	 * @param declaringClass 表示 @ComponentScan 注解的所在的类
+	 * @return
+	 */
 	public Set<BeanDefinitionHolder> parse(AnnotationAttributes componentScan, String declaringClass) {
+		// 构建扫描器
+		// this.registry 表示 spring 容器 , BeanDefinitionRegistry registry ，各种 applicationContext 实现 BeanDefinitionRegistry 接口
+		// componentScan.getBoolean("useDefaultFilters"), @ComponentScan 注解的 useDefaultFilters 属性 ，默认为 true
+		// 注册
 		ClassPathBeanDefinitionScanner scanner = new ClassPathBeanDefinitionScanner(this.registry,
 				componentScan.getBoolean("useDefaultFilters"), this.environment, this.resourceLoader);
 
+
+		// ----------------------向扫描器里面添加东西------------------------------
+
+		// @ComponentScan 注解的 nameGenerator 属性  ， beanName 生成器
+		// Class<? extends BeanNameGenerator> nameGenerator() default BeanNameGenerator.class;
+		// 默认值 BeanNameGenerator.class
 		Class<? extends BeanNameGenerator> generatorClass = componentScan.getClass("nameGenerator");
 		boolean useInheritedGenerator = (BeanNameGenerator.class == generatorClass);
+		// 默认为 AnnotationBeanNameGenerator
+		// 相等用默认的 this.beanNameGenerator，不相等用自定义的 BeanUtils.instantiateClass(generatorClass)
+		/** @see AnnotationBeanNameGenerator */
 		scanner.setBeanNameGenerator(useInheritedGenerator ? this.beanNameGenerator :
 				BeanUtils.instantiateClass(generatorClass));
 
+		// @ComponentScan 注解的 scopedProxy 属性
 		ScopedProxyMode scopedProxyMode = componentScan.getEnum("scopedProxy");
 		if (scopedProxyMode != ScopedProxyMode.DEFAULT) {
 			scanner.setScopedProxyMode(scopedProxyMode);
@@ -83,8 +103,10 @@ class ComponentScanAnnotationParser {
 			scanner.setScopeMetadataResolver(BeanUtils.instantiateClass(resolverClass));
 		}
 
+		// @ComponentScan 注解的 resourcePattern 属性
 		scanner.setResourcePattern(componentScan.getString("resourcePattern"));
 
+		// @ComponentScan 注解的 includeFilters 属性
 		for (AnnotationAttributes includeFilterAttributes : componentScan.getAnnotationArray("includeFilters")) {
 			List<TypeFilter> typeFilters = TypeFilterUtils.createTypeFiltersFor(includeFilterAttributes, this.environment,
 					this.resourceLoader, this.registry);
@@ -92,6 +114,7 @@ class ComponentScanAnnotationParser {
 				scanner.addIncludeFilter(typeFilter);
 			}
 		}
+		// @ComponentScan 注解的 excludeFilters 属性
 		for (AnnotationAttributes excludeFilterAttributes : componentScan.getAnnotationArray("excludeFilters")) {
 			List<TypeFilter> typeFilters = TypeFilterUtils.createTypeFiltersFor(excludeFilterAttributes, this.environment,
 				this.resourceLoader, this.registry);
@@ -100,11 +123,14 @@ class ComponentScanAnnotationParser {
 			}
 		}
 
+		// @ComponentScan 注解的 lazyInit 属性
+		// 默认情况下bean都是非懒加载 （lazyInit = false）
 		boolean lazyInit = componentScan.getBoolean("lazyInit");
 		if (lazyInit) {
 			scanner.getBeanDefinitionDefaults().setLazyInit(true);
 		}
 
+		// @ComponentScan 注解的 basePackages 属性 (value 等价于 basePackages)
 		Set<String> basePackages = new LinkedHashSet<>();
 		String[] basePackagesArray = componentScan.getStringArray("basePackages");
 		for (String pkg : basePackagesArray) {
@@ -112,9 +138,12 @@ class ComponentScanAnnotationParser {
 					ConfigurableApplicationContext.CONFIG_LOCATION_DELIMITERS);
 			Collections.addAll(basePackages, tokenized);
 		}
+		// 获取指定类所在的包名作为扫描路径 比如： cn.xiaosy.springdemo.scanner.AppConfig ， ClassUtils.getPackageName(clazz) = cn.xiaosy.springdemo.scanner
 		for (Class<?> clazz : componentScan.getClassArray("basePackageClasses")) {
 			basePackages.add(ClassUtils.getPackageName(clazz));
 		}
+		// 如果为空就会把 @ComponentScan 注解 所在的类 declaringClass，当做 basePackageClasses
+		// 然后获取到扫描路径
 		if (basePackages.isEmpty()) {
 			basePackages.add(ClassUtils.getPackageName(declaringClass));
 		}
@@ -122,9 +151,17 @@ class ComponentScanAnnotationParser {
 		scanner.addExcludeFilter(new AbstractTypeHierarchyTraversingFilter(false, false) {
 			@Override
 			protected boolean matchClassName(String className) {
+				// 如果 扫描到的类，其类名 className 等于 @ComponentScan 注解 所在的类 declaringClass 的类名
+				// 则排除，为 true 即排除 （false不排除）
+				// 比如：
+				// @ComponentScan
+				// public class AppConfig {
+				// }
+				// AppConfig 早就通过 registerBean 注册进去了，这里把 AppConfig 排除不再扫描
 				return declaringClass.equals(className);
 			}
 		});
+		// 扫描
 		return scanner.doScan(StringUtils.toStringArray(basePackages));
 	}
 

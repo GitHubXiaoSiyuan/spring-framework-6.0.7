@@ -163,6 +163,7 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 		this.registry = registry;
 
 		if (useDefaultFilters) {
+			// 注册
 			registerDefaultFilters();
 		}
 		setEnvironment(environment);
@@ -273,6 +274,8 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 		Assert.notEmpty(basePackages, "At least one base package must be specified");
 		Set<BeanDefinitionHolder> beanDefinitions = new LinkedHashSet<>();
 		for (String basePackage : basePackages) {
+			// 扫描结果 candidates
+			// 扫描
 			Set<BeanDefinition> candidates = findCandidateComponents(basePackage);
 			for (BeanDefinition candidate : candidates) {
 				ScopeMetadata scopeMetadata = this.scopeMetadataResolver.resolveScopeMetadata(candidate);
@@ -282,13 +285,18 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 					postProcessBeanDefinition(abstractBeanDefinition, beanName);
 				}
 				if (candidate instanceof AnnotatedBeanDefinition annotatedBeanDefinition) {
+					// 解析 @Lazy @Primary @DependsOn @Role @Description 注解
 					AnnotationConfigUtils.processCommonDefinitionAnnotations(annotatedBeanDefinition);
 				}
+				// 检查 Spring 容器中是否已存在该 beanName
+				// 注：在扫描其中一个 basePackage 的时候，可能把其他的 basePackage 的 bean 扫描进去了，两个就重复了，这里检验保证唯一性
 				if (checkCandidate(beanName, candidate)) {
 					BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(candidate, beanName);
 					definitionHolder =
 							AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, this.registry);
 					beanDefinitions.add(definitionHolder);
+
+					// 注册
 					registerBeanDefinition(definitionHolder, this.registry);
 				}
 			}
@@ -341,6 +349,7 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 		if (originatingDef != null) {
 			existingDef = originatingDef;
 		}
+		// 是否兼容，如果兼容返回 false 表示不会重新注册到 Spring 容器中，如果不冲突则会抛异常。
 		if (isCompatible(beanDefinition, existingDef)) {
 			return false;
 		}
@@ -362,6 +371,29 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 	 */
 	protected boolean isCompatible(BeanDefinition newDefinition, BeanDefinition existingDefinition) {
 		return (!(existingDefinition instanceof ScannedGenericBeanDefinition) ||  // explicitly registered overriding bean
+				// newDefinition.getSource()	当前 bean
+				// existingDefinition.getSource()	之前容器存在的 bean
+				/**
+				 * @ComponentScan( value = "cn.xiaosy.springdemo.scanner")
+				 * @ComponentScan( value = "cn.xiaosy.springdemo.scanner.service")
+				 *
+				 * 这两次扫描可能
+				 *
+				 * 扫描到名字一样，但类型不同的 bean
+				 * 比如：
+				 * @Component("orderService")
+				 * public class UserService { }
+				 * @Component
+				 * public class OrderService { }
+				 *
+				 * 在这里 newDefinition.equals(existingDefinition) 就会返回 false
+				 *
+				 * 后面会根据这个 false 抛异常
+				 *
+				 *
+				 * 总结：bean 名字没有冲突 或者 bean 名字冲突了，但是类型不冲突 返回true
+				 * 名字一样，但类型不同的 bean，返回 false，后面会根据这个 false 抛异常
+				 */
 				(newDefinition.getSource() != null && newDefinition.getSource().equals(existingDefinition.getSource())) ||  // scanned same file twice
 				newDefinition.equals(existingDefinition));  // scanned equivalent class twice
 	}

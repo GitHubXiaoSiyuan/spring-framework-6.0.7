@@ -1,0 +1,2 @@
+cn.xiaosy.springdemo.scanner.demo2.OrderService=org.springframework.stereotype.Component
+cn.xiaosy.springdemo.scanner.demo2.UserService=org.springframework.stereotype.Component

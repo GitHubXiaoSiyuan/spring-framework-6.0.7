@@ -550,34 +550,54 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			// Prepare this context for refreshing.
 			prepareRefresh();
 
-			// Tell the subclass to refresh the internal bean factory.
+			// Tell the subclass to refresh the internal bean factory.\
+			// 这里会判断是否刷新，并且返回一个 BeanFactory , 刷新不代表完全情况，主要是先执行 Bean 的销毁，然后
+			// 重新生成一个 BeanFactory
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
 			// Prepare the bean factory for use in this context.
+			// 准备 BeanFactory
+			// 1. 设置 BeanFactory 的类加载器， SpringEL 表达式解析器、类型转化注册器
+			// 2. 添加三个 BeanPostProcessor , 注意是具体的  BeanPostProcessor 实例对象
+			// 3. 记录 ignoreDependencyInterface
+			// 4. 记录 ResolvableDependency
+			// 5. 添加三个单例 Bean
 			prepareBeanFactory(beanFactory);
 
 			try {
 				// Allows post-processing of the bean factory in context subclasses.
+				// 子类来设置一下 BeanFactory
 				postProcessBeanFactory(beanFactory);
 
 				StartupStep beanPostProcess = this.applicationStartup.start("spring.context.beans.post-process");
 				// Invoke factory processors registered as beans in the context.
-				invokeBeanFactoryPostProcessors(beanFactory);
+				// 默认情况下：
+				// 此时 beanFactory 的 beanDefinitionMap 中有6个 BeanDefinition , 5 个基础 BeanDefinition + AppConfig 的 BeanDef...
+				// 而这6个中只有一个 BeanFactoryPostProcessor: ConfigurationClassPostProcessor
+				// 这里会执行 ConfigurationClassPostProcessor 进行 @Component 的扫描，扫描得到 BeanDefinition , 并注册到 beanFa...
+				// 注意:扫描的过程中可能又会扫描出其他的 BeanFactoryPostProcessor，那么这些 BeanFactoryPostProcessor 也得在这 ...
+				invokeBeanFactoryPostProcessors(beanFactory);	// scanner.scan()
 
 				// Register bean processors that intercept bean creation.
+				// 将扫描到的 BeanPostProcessors 实例化并排序，并添加到 BeanFactory 的 beanPostProcessors 属性中去
 				registerBeanPostProcessors(beanFactory);
 				beanPostProcess.end();
 
 				// Initialize message source for this context.
+				// 设置 ApplicationContext 的 MessageSource，要么是用户设置的，要么是 DelegatingMessageSource
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
+				// 设置 ApplicationContext 的 applicationEventMulticaster，要么是用户设置的，要么是 SimpleApplicationEventMulticaster
+				/** @see org.springframework.context.event.SimpleApplicationEventMulticaster */
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
+				// 给子类的模板方法
 				onRefresh();
 
 				// Check for listener beans and register them.
+				// 把定义的 ApplicationListener 的 Bean 对象，设置到 ApplicationContext 中去，并执行在此之前所发布的事件
 				registerListeners();
 
 				// Instantiate all remaining (non-lazy-init) singletons.

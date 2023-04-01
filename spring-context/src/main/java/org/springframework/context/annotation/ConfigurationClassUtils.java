@@ -95,17 +95,20 @@ public abstract class ConfigurationClassUtils {
 	static boolean checkConfigurationClassCandidate(
 			BeanDefinition beanDef, MetadataReaderFactory metadataReaderFactory) {
 
+		// @Bean 定义的配置类 Bean 是不起作用的
 		String className = beanDef.getBeanClassName();
 		if (className == null || beanDef.getFactoryMethodName() != null) {
 			return false;
 		}
 
+		// AnnotationMetadata 表示某个类的注解信息，但是并一定要加载这个类
 		AnnotationMetadata metadata;
 		if (beanDef instanceof AnnotatedBeanDefinition annotatedBd &&
 				className.equals(annotatedBd.getMetadata().getClassName())) {
 			// Can reuse the pre-parsed metadata from the given BeanDefinition...
 			metadata = annotatedBd.getMetadata();
 		}
+		// 如果是 AbstractBeanDefinition，则解析 beanClass 得到 AnnotationMetadata
 		else if (beanDef instanceof AbstractBeanDefinition abstractBd && abstractBd.hasBeanClass()) {
 			// Check already loaded Class if present...
 			// since we possibly can't even load the class file for this Class.
@@ -132,10 +135,16 @@ public abstract class ConfigurationClassUtils {
 			}
 		}
 
+		// 类上有 @Configuration 注解
 		Map<String, Object> config = metadata.getAnnotationAttributes(Configuration.class.getName());
+
+		// 存在 @Configuration，并且 proxyBeanMethods 不为 false (为true或为null)时，就是 Full 配置类
 		if (config != null && !Boolean.FALSE.equals(config.get("proxyBeanMethods"))) {
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_FULL);
 		}
+		// 存在 @Configuration，并且 proxyBeanMethods 为false时，是 lite 配置类
+		// 或者不存在 @Configuration，但是只要存在 @Component、@ComponentScan、@Import、@ImportResource 四个中的一个，就是 lite 配置类
+		// 或者不存在 @Configuration， 只要存在 @Bean 注解了的方法，就是 Lite 配置类
 		else if (config != null || isConfigurationCandidate(metadata)) {
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_LITE);
 		}
@@ -165,19 +174,23 @@ public abstract class ConfigurationClassUtils {
 			return false;
 		}
 
-		// Any of the typical annotations found?
+		// Any of the typical annotations found? // 找到了哪些典型的注释?
+		// 只要存在 @Component、@ComponentScan、@Import、@ImportResource 四个中的一个，就是 lite 配置类
+		// Set<String> candidateIndicators 是 这四个注解的 Set 集合类
 		for (String indicator : candidateIndicators) {
 			if (metadata.isAnnotated(indicator)) {
 				return true;
 			}
 		}
 
-		// Finally, let's look for @Bean methods...
+		// Finally, let's look for @Bean methods...	// 最后，让我们寻找@Bean方法 ...
+		// 只要存在 @Bean 注解了的方法，就是 Lite 配置类
 		return hasBeanMethods(metadata);
 	}
 
 	static boolean hasBeanMethods(AnnotationMetadata metadata) {
 		try {
+			// 当前方法是否被 @Bean 注解修饰
 			return metadata.hasAnnotatedMethods(Bean.class.getName());
 		}
 		catch (Throwable ex) {
