@@ -1,1 +1,0 @@
-// componentsIndex 优化机制的一个例子
