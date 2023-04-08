@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Lookup;
 import org.springframework.stereotype.Component;
 
-@Component("userServiceDemo2")
+@Component("userServiceDemo1")
 public class UserService {
 
 
