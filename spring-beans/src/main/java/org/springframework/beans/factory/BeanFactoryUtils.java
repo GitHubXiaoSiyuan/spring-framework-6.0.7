@@ -257,9 +257,12 @@ public abstract class BeanFactoryUtils {
 			ListableBeanFactory lbf, Class<?> type, boolean includeNonSingletons, boolean allowEagerInit) {
 
 		Assert.notNull(lbf, "ListableBeanFactory must not be null");
+		// 首先从指定容器中查找符合类型的 Bean，包括非单例和惰性初始化的 Bean
 		String[] result = lbf.getBeanNamesForType(type, includeNonSingletons, allowEagerInit);
+		// 如果该容器是层次结构，继续向上查找
 		if (lbf instanceof HierarchicalBeanFactory hbf) {
 			if (hbf.getParentBeanFactory() instanceof ListableBeanFactory pbf) {
+				// 递归调用自身查找父容器中符合类型的 Bean，并将结果与当前容器中的结果合并
 				String[] parentResult = beanNamesForTypeIncludingAncestors(
 						pbf, type, includeNonSingletons, allowEagerInit);
 				result = mergeNamesWithParent(result, parentResult, hbf);

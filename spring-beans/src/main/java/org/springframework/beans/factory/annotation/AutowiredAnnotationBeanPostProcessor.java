@@ -475,18 +475,46 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 		}
 	}
 
+	/**
+	 * 实例化Bean及设置Bean的属性值之前对其进行进一步的自定义处理，例如注入依赖关系。
+	 *
+	 *
+	 * 该方法的主要执行过程如下：
+	 *
+	 * 调用findAutowiringMetadata方法查找所有需要自动进行依赖注入的属性，生成InjectionMetadata对象。
+	 *
+	 * 调用inject方法对Bean进行依赖注入。
+	 *
+	 * 如果注入过程中发生异常，则将该异常封装成BeanCreationException，然后抛出。
+	 *
+	 * 否则，如果注入成功，则返回当前Bean的原始PropertyValues对象。
+	 *
+	 * 其中，findAutowiringMetadata方法会根据注解和类型信息查找需要进行自动注入的属性，创建一个InjectionMetadata对象来保存这些属性和它们的注入方式。
+	 * 而inject方法则会调用AutowireUtils工具类来完成依赖注入操作，它会遍历所有需要自动注入的属性，并递归调用doInjection方法进行注入。
+	 * 在注入时，如果被注入属性的类型与BeanFactory中存在多个Bean实例对象的类型一致，则会引发NoUniqueBeanDefinitionException异常。
+	 * 当注入过程中发生其它异常时，会将该异常封装成BeanCreationException，并记录下当前Bean的名称和发生异常的原因信息。
+	 *
+	 * @param pvs 当前Bean的原始PropertyValues对象，可用于自定义属性注入或替换；
+	 * @param bean 当前Bean的实例对象
+	 * @param beanName 当前Bean的名称
+	 * @return
+	 */
 	@Override
 	public PropertyValues postProcessProperties(PropertyValues pvs, Object bean, String beanName) {
+		// 1、查找所有需要自动进行依赖注入的属性，生成InjectionMetadata对象
 		InjectionMetadata metadata = findAutowiringMetadata(beanName, bean.getClass(), pvs);
 		try {
+			// 2、调用inject方法对Bean进行依赖注入
 			metadata.inject(bean, beanName, pvs);
 		}
 		catch (BeanCreationException ex) {
 			throw ex;
 		}
 		catch (Throwable ex) {
+			// 3、如果注入过程中发生异常，则将该异常封装成BeanCreationException，然后抛出
 			throw new BeanCreationException(beanName, "Injection of autowired dependencies failed", ex);
 		}
+		// 4、否则，如果注入成功，则返回当前Bean的原始PropertyValues对象
 		return pvs;
 	}
 
@@ -676,12 +704,23 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 			super(field, null, required);
 		}
 
+		/**
+		 * 将依赖资源注入到目标对象中
+		 *
+		 * @param bean 目标对象
+		 * @param beanName 目标对象的名称
+		 * @param pvs 属性值列表
+		 */
 		@Override
 		protected void inject(Object bean, @Nullable String beanName, @Nullable PropertyValues pvs) throws Throwable {
+			// 获取当前需要注入的属性对象
 			Field field = (Field) this.member;
 			Object value;
+
+			// 如果该属性被缓存，则尝试从缓存中获取其值
 			if (this.cached) {
 				try {
+					// 缓存的依赖资源已被移除，则重新解析
 					value = resolvedCachedArgument(beanName, this.cachedFieldValue);
 				}
 				catch (NoSuchBeanDefinitionException ex) {
@@ -690,34 +729,61 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 				}
 			}
 			else {
+				// 未被缓存，则直接解析
 				value = resolveFieldValue(field, bean, beanName);
 			}
+			// 如果解析出来的依赖资源不为空，则进行注入
 			if (value != null) {
+				// 设置属性可见性
 				ReflectionUtils.makeAccessible(field);
+				// 注入依赖资源
 				field.set(bean, value);
 			}
 		}
 
+		/**
+		 * 通过自动装配与当前字段类型匹配的Bean，或使用指定名称的Bean来解析指定的字段值。
+		 *
+		 * @param field 字段
+		 * @param bean Bean实例对象
+		 * @param beanName Bean名称
+		 * @return 解析出来的字段值
+		 */
 		@Nullable
 		private Object resolveFieldValue(Field field, Object bean, @Nullable String beanName) {
+			// 创建依赖描述符 DependencyDescriptor 对象，用于描述当前字段的依赖信息
 			DependencyDescriptor desc = new DependencyDescriptor(field, this.required);
+			// 设置被依赖的类
 			desc.setContainingClass(bean.getClass());
+			// 定义一个 LinkedHashSet 对象来保存自动装配的 Bean 的名称
 			Set<String> autowiredBeanNames = new LinkedHashSet<>(1);
+
+			// 确保 Spring BeanFactory 不为空
 			Assert.state(beanFactory != null, "No BeanFactory available");
+			// 获取类型转换器
 			TypeConverter typeConverter = beanFactory.getTypeConverter();
 			Object value;
 			try {
+				// 解析依赖资源
+				/** @see DefaultListableBeanFactory#resolveDependency(DependencyDescriptor, String, Set, TypeConverter) */
 				value = beanFactory.resolveDependency(desc, beanName, autowiredBeanNames, typeConverter);
 			}
 			catch (BeansException ex) {
+				// 解析失败则抛出异常
 				throw new UnsatisfiedDependencyException(null, beanName, new InjectionPoint(field), ex);
 			}
+
 			synchronized (this) {
+				// 判断是否需要缓存结果
 				if (!this.cached) {
+					// 创建一个变量用于保存缓存结果
 					Object cachedFieldValue = null;
+					// 如果解析结果不为 null 或者当前字段必须有值，则进行缓存并注册被依赖的 Bean
 					if (value != null || this.required) {
 						cachedFieldValue = desc;
+						// 注册当前被依赖的 Bean
 						registerDependentBeans(beanName, autowiredBeanNames);
+						// 如果只有一个自动装配的 Bean，并且类型匹配，则创建一个 ShortcutDependencyDescriptor 对象
 						if (autowiredBeanNames.size() == 1) {
 							String autowiredBeanName = autowiredBeanNames.iterator().next();
 							if (beanFactory.containsBean(autowiredBeanName) &&
@@ -727,10 +793,12 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 							}
 						}
 					}
+					// 缓存结果并标记为已缓存
 					this.cachedFieldValue = cachedFieldValue;
 					this.cached = true;
 				}
 			}
+			// 返回解析结果
 			return value;
 		}
 	}

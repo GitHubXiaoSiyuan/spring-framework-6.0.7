@@ -6,12 +6,12 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("demoAService")
 public class DemoAService {
 
 	@Autowired
 	@Lazy
-	DemoAService bService;
+	DemoAService demoBService;
 
 
 	@Lazy
@@ -21,7 +21,7 @@ public class DemoAService {
 
 	@Async
 	public void test() {
-		System.out.println(bService);
+		System.out.println(demoBService);
 	}
 
 }

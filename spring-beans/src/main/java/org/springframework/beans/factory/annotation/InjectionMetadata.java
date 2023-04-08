@@ -124,12 +124,32 @@ public class InjectionMetadata {
 		}
 	}
 
+	/**
+	 * 主要执行以下步骤：
+	 *
+	 * 首先判断是否存在需要被注入的属性对象。
+	 *
+	 * 对所有需要被注入的属性对象逐一调用InjectedElement实例对象的inject方法进行属性注入。
+	 *
+	 * 其中，如果需要被注入的属性类型与容器中有多个实例对象的类型相同，则会抛出NoUniqueBeanDefinitionException异常。
+	 *
+	 * 如果在属性注入过程中发生了异常，则该异常将被封装为BeanCreationException并抛出。
+	 *
+	 * @param target 需要被依赖注入的目标对象
+	 * @param beanName 对应的bean名称
+	 * @param pvs 当前Bean的PropertyValues对象
+	 * @throws Throwable
+	 */
 	public void inject(Object target, @Nullable String beanName, @Nullable PropertyValues pvs) throws Throwable {
 		Collection<InjectedElement> checkedElements = this.checkedElements;
+		// 如果有缓存的InjectionMetadata，则使用它，否则使用当前实例中的injectedElements属性
 		Collection<InjectedElement> elementsToIterate =
 				(checkedElements != null ? checkedElements : this.injectedElements);
+		// 如果存在要进行注入操作的元素，则遍历这些元素，对目标对象的属性进行依赖注入
 		if (!elementsToIterate.isEmpty()) {
 			for (InjectedElement element : elementsToIterate) {
+				// 调用InjectedElement实例对象中保存的依赖注入信息完成属性注入操作
+				/** @see AutowiredAnnotationBeanPostProcessor.AutowiredFieldElement#inject(Object, String, PropertyValues) */
 				element.inject(target, beanName, pvs);
 			}
 		}
@@ -232,25 +252,44 @@ public class InjectionMetadata {
 
 		/**
 		 * Either this or {@link #getResourceToInject} needs to be overridden.
+		 *
+		 * 通过反射调用目标对象的set方法或invoke方法，将对应的依赖资源注入到目标对象的属性中。 具体而言：
+		 *
+		 * 如果当前元素对应的成员是一个属性，即this.isField为true，则将该属性设置为可访问状态，
+		 * 并使用ReflectionUtils工具类中的makeAccessible()方法处理这个成员变量，将其设置为可以访问。
+		 * 然后，通过field.set()方法将依赖资源注入到目标对象中。
+		 *
+		 * 如果当前元素对应的成员是一个方法，即this.isField为false，则首先检查是否需要跳过该属性。
+		 * 如果需要，直接返回。否则，使用ReflectionUtils工具类中的makeAccessible()方法处理这个方法，
+		 * 将其设置为可以访问。然后，通过method.invoke()方法调用目标方法，并传入目标对象和对应的依赖资源。
+		 * 如果调用方法时发生异常，则通过捕获InvocationTargetException异常并重新抛出其目标异常来处理异常情况。
+		 *
 		 */
 		protected void inject(Object target, @Nullable String requestingBeanName, @Nullable PropertyValues pvs)
 				throws Throwable {
 
+			// 如果当前元素为属性，则将其设置为访问可见性，并将依赖资源注入到目标对象中
 			if (this.isField) {
 				Field field = (Field) this.member;
+				// 将成员变量设置为访问可见性
 				ReflectionUtils.makeAccessible(field);
 				field.set(target, getResourceToInject(target, requestingBeanName));
 			}
-			else {
+			else {// 当前元素为方法
+				// 检查是否需要跳过该属性
 				if (checkPropertySkipping(pvs)) {
+					// 如果需要跳过，则直接返回
 					return;
 				}
 				try {
 					Method method = (Method) this.member;
+					// 将方法设置为访问可见性
 					ReflectionUtils.makeAccessible(method);
+					// 调用方法，并传入对应的依赖资源
 					method.invoke(target, getResourceToInject(target, requestingBeanName));
 				}
 				catch (InvocationTargetException ex) {
+					// 如果调用方法时发生异常，则捕获并重新抛出封装后的异常
 					throw ex.getTargetException();
 				}
 			}

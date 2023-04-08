@@ -126,7 +126,10 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	@Nullable
 	private ParameterNameDiscoverer parameterNameDiscoverer = new DefaultParameterNameDiscoverer();
 
-	/** Whether to automatically try to resolve circular references between beans. */
+	/** Whether to automatically try to resolve circular references between beans.
+	 * (翻译：自动解决bean之间的循环引用)
+	 * 是否允许循环依赖
+	 * */
 	private boolean allowCircularReferences = true;
 
 	/**
@@ -1460,14 +1463,19 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			pvs = newPvs;
 		}
 		if (hasInstantiationAwareBeanPostProcessors()) {
+			// 如果存在实现了InstantiationAwareBeanPostProcessor接口的BeanPostProcessor，则进行属性处理
 			if (pvs == null) {
+				// 如果当前没有PropertyValues，则将mbd的PropertyValues赋值给它
 				pvs = mbd.getPropertyValues();
 			}
+			// 遍历所有的InstantiationAwareBeanPostProcessor实现类，执行 postProcessProperties 方法对属性进行定制化操作
 			for (InstantiationAwareBeanPostProcessor bp : getBeanPostProcessorCache().instantiationAware) {
 				PropertyValues pvsToUse = bp.postProcessProperties(pvs, bw.getWrappedInstance(), beanName);
+				// 如果返回的pvsToUse为null，则直接结束处理
 				if (pvsToUse == null) {
 					return;
 				}
+				// 使用返回的新的PpropertyValues替代原有的pvs，以便后面使用
 				pvs = pvsToUse;
 			}
 		}

@@ -357,6 +357,9 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 * @param beanName the name of the bean
 	 */
 	public boolean isSingletonCurrentlyInCreation(@Nullable String beanName) {
+		// Set<String> singletonsCurrentlyInCreation
+		// 当前正在创建中的Bean的集合
+		// 如果依赖的bean在这个集合里面说明出现了循环依赖
 		return this.singletonsCurrentlyInCreation.contains(beanName);
 	}
 

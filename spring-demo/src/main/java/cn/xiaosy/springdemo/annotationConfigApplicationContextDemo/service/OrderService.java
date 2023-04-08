@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class OrderService {
 
-	@Autowired
+	@Autowired(required = false)
 	UserService userService;
 
 //	@Autowired

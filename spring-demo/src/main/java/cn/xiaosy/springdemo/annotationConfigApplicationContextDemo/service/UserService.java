@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService implements InitializingBean {
 
 
-	@Autowired
+	@Autowired(required = false)
     private OrderService orderService;
 
 

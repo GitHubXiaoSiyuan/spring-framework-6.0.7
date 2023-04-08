@@ -1,2 +1,3 @@
-cn.xiaosy.springdemo.scanner.demo2.OrderService=org.springframework.stereotype.Component
-cn.xiaosy.springdemo.scanner.demo2.UserService=org.springframework.stereotype.Component
+# 这个对全整个项目的扫描机制都有影响，不要开，只在测试 扫描机制的时候开
+# cn.xiaosy.springdemo.scanner.demo2.OrderService=org.springframework.stereotype.Component
+# cn.xiaosy.springdemo.scanner.demo2.UserService=org.springframework.stereotype.Component
